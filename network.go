@@ -1,6 +1,8 @@
 package treego
 
 import (
+	"encoding/binary"
+	"io"
 	"net"
 	"sync"
 )
@@ -8,6 +10,8 @@ import (
 const (
 	ERROR_TCP_CONNECTION_WRITE = 1
 	ERROR_TCP_CONNECTION_READ  = 2
+
+	MAX_MESSAGE_SIZE = 30000000
 )
 
 // Main networking functionality for API
@@ -185,23 +189,68 @@ func (tcp_net *TcpNetwork) write(data []byte) {
 
 // Concurrently handling connection
 func (tcp_net *TcpNetwork) handle_connection(conn *net.TCPConn, index int) {
-	// Allocating read buffer as a 64K byte
-	buffer := make([]byte, 65536)
+	endian_buffer := make([]byte, 4)
+	endian_index := 0
 	for {
-		n, err := conn.Read(buffer)
+		// reading API data length
+		n, err := conn.Read(endian_buffer[endian_index:])
 		if err != nil {
-			tcp_net.network.node.onError(ERROR_TCP_CONNECTION_READ, err)
+			if err == io.EOF {
+				// if we got here then we have connection error
+				// so we need to close connection
+				tcp_net.conn_locker.Lock()
+				tcp_net.close_conn(index)
+				tcp_net.conn_locker.Unlock()
+				return
+			}
 
-			// if we got here then we have connection error
-			// so we need to close connection
+			continue
+		}
+
+		if endian_index+n < 4 {
+			endian_index += n
+			continue
+		}
+
+		data_len := binary.BigEndian.Uint32(endian_buffer)
+		if data_len > MAX_MESSAGE_SIZE {
 			tcp_net.conn_locker.Lock()
 			tcp_net.close_conn(index)
 			tcp_net.conn_locker.Unlock()
+			break
 		}
+
+		buffer := make([]byte, data_len)
+		buffer_index := 0
+
+		for {
+			nn, err := conn.Read(buffer[index:])
+			if err != nil {
+				if err == io.EOF {
+					// if we got here then we have connection error
+					// so we need to close connection
+					tcp_net.conn_locker.Lock()
+					tcp_net.close_conn(index)
+					tcp_net.conn_locker.Unlock()
+					return
+				}
+
+				continue
+			}
+
+			if buffer_index+nn < data_len {
+				buffer_index += nn
+				continue
+			}
+
+			break
+		}
+
+		endian_index = 0
 
 		// got data which would be converted to Event Data
 		// handling it concurrently
-		go tcp_net.network.node.handle_data(buffer[:n], tcp_net.endpoint)
+		go tcp_net.network.node.handle_data(buffer, tcp_net.endpoint)
 	}
 }
 

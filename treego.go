@@ -67,11 +67,7 @@ func (api *Api) SetDefaultEndpoint(endpoint string) {
 // Handling data from networking
 func (api *Api) handle_data(data []byte, endpoint string) {
 	event := &Event{}
-	err := event.FromBytes(data)
-	if err != nil {
-		api.onError(ERROR_EVENT_PARSE_DATA, err)
-		return
-	}
+	event.FromBytes(data)
 
 	api.callbacks_locker.Lock()
 

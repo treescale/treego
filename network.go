@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 const (
@@ -204,6 +205,11 @@ func (tcp_net *TcpNetwork) handle_connection(conn *net.TCPConn, index int) {
 				return
 			}
 
+			// if we got temporary network error, just sleeping for a few milliseconds
+			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
+				time.Sleep(time.Millisecond * 100)
+			}
+
 			continue
 		}
 
@@ -233,6 +239,11 @@ func (tcp_net *TcpNetwork) handle_connection(conn *net.TCPConn, index int) {
 					tcp_net.close_conn(index)
 					tcp_net.conn_locker.Unlock()
 					return
+				}
+
+				// if we got temporary network error, just sleeping for a few milliseconds
+				if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
+					time.Sleep(time.Millisecond * 100)
 				}
 
 				continue

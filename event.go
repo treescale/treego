@@ -17,6 +17,14 @@ type Event struct {
 // Event callback function type
 type EventCallback func(*Event) bool
 
+func NewEvent(name string, data []byte) *Event {
+	return nil
+}
+
 func (e *Event) ToBytes() []byte {
+
+}
+
+func (e *Event) FromBytes(buffer []byte) error {
 
 }

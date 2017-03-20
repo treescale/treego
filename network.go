@@ -10,16 +10,8 @@ const (
 	ERROR_TCP_CONNECTION_READ  = 2
 )
 
-var (
-	onNetworkError = func(int, error) {}
-)
-
 // Main networking functionality for API
 type Network struct {
-	// Endpoint of API Server
-	// this would be set only once for connecting the host
-	endpoint string
-
 	// TCP networking
 	tcp_net map[string]*TcpNetwork
 
@@ -43,9 +35,8 @@ type TcpNetwork struct {
 
 func newNetwork(api *Api) Network {
 	return Network{
-		endpoint: "",
-		tcp_net:  make(map[string]*TcpNetwork),
-		node:     api,
+		tcp_net: make(map[string]*TcpNetwork),
+		node:    api,
 	}
 }
 
@@ -180,7 +171,7 @@ func (tcp_net *TcpNetwork) write(data []byte) {
 	for {
 		n, err := conn.Write(data[data_index:])
 		if err != nil {
-			onNetworkError(ERROR_TCP_CONNECTION_WRITE)
+			tcp_net.network.node.onError(ERROR_TCP_CONNECTION_WRITE)
 			break
 		}
 
@@ -199,7 +190,7 @@ func (tcp_net *TcpNetwork) handle_connection(conn *net.TCPConn, index int) {
 	for {
 		n, err := conn.Read(buffer)
 		if err != nil {
-			onNetworkError(ERROR_TCP_CONNECTION_READ, err)
+			tcp_net.network.node.onError(ERROR_TCP_CONNECTION_READ, err)
 
 			// if we got here then we have connection error
 			// so we need to close connection

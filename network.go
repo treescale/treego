@@ -38,8 +38,8 @@ type TcpNetwork struct {
 	network *Network
 }
 
-func newNetwork(api *Api) Network {
-	return Network{
+func newNetwork(api *Api) *Network {
+	return &Network{
 		tcp_net: make(map[string]*TcpNetwork),
 		node:    api,
 	}
@@ -55,7 +55,7 @@ func (network *Network) connect(endpoint string) error {
 	if _, ok := network.tcp_net[endpoint]; !ok {
 		network.tcp_net[endpoint] = &TcpNetwork{
 			endpoint:    endpoint,
-			connections: make(map[string]*net.TCPConn),
+			connections: make([]*net.TCPConn, 0),
 			conn_index:  0,
 			conn_locker: &sync.Mutex{},
 			network:     network,
@@ -74,7 +74,7 @@ func (network *Network) open_channels(endpoint string, count int) error {
 	if _, ok := network.tcp_net[endpoint]; !ok {
 		network.tcp_net[endpoint] = &TcpNetwork{
 			endpoint:    endpoint,
-			connections: make(map[string]*net.TCPConn),
+			connections: make([]*net.TCPConn, 0),
 			conn_index:  0,
 			conn_locker: &sync.Mutex{},
 			network:     network,
@@ -162,7 +162,7 @@ func (tcp_net *TcpNetwork) connect(address string) error {
 func (tcp_net *TcpNetwork) write(data []byte) {
 	tcp_net.conn_locker.Lock()
 
-	if tcp_net.conn_index >= len(tcp_net.connections) {
+	if int(tcp_net.conn_index) >= len(tcp_net.connections) {
 		tcp_net.conn_index = 0
 	}
 	i := tcp_net.conn_index
@@ -171,12 +171,12 @@ func (tcp_net *TcpNetwork) write(data []byte) {
 
 	tcp_net.conn_locker.Unlock()
 
-	data_len := data
+	data_len := len(data)
 	data_index := 0
 	for {
 		n, err := conn.Write(data[data_index:])
 		if err != nil {
-			tcp_net.network.node.onError(ERROR_TCP_CONNECTION_WRITE)
+			tcp_net.network.node.onError(ERROR_TCP_CONNECTION_WRITE, err)
 			break
 		}
 
@@ -249,7 +249,7 @@ func (tcp_net *TcpNetwork) handle_connection(conn *net.TCPConn, index int) {
 				continue
 			}
 
-			if buffer_index+nn < data_len {
+			if buffer_index+nn < int(data_len) {
 				buffer_index += nn
 				continue
 			}

@@ -33,11 +33,11 @@ func (e *Event) ToBytes() []byte {
 	name_data := []byte(e.Name)
 	from_data := []byte(e.From)
 	target_data := []byte(e.Target)
-	data_len := 4 + 8 // 4 bytes for path length
-	+4 + len(name_data)
-	+4 + len(from_data)
-	+4 + len(target_data)
-	+len(e.Data)
+	data_len := 4 + 8 + // 4 bytes for path length
+		4 + len(name_data) +
+		4 + len(from_data) +
+		4 + len(target_data) +
+		len(e.Data)
 
 	buffer := make([]byte, data_len+4) // adding more 4 bytes for writing total data length
 	offset := 0
@@ -85,22 +85,22 @@ func (e *Event) FromBytes(buffer []byte) {
 	name_len := binary.BigEndian.Uint32(buffer[offset : offset+4])
 	offset += 4
 	// getting name filed
-	e.Name = string(buffer[offset : offset+name_len])
-	offset += name_len
+	e.Name = string(buffer[offset : offset+int(name_len)])
+	offset += int(name_len)
 
 	// getting From length
 	from_len := binary.BigEndian.Uint32(buffer[offset : offset+4])
 	offset += 4
 	// getting From filed
-	e.From = string(buffer[offset : offset+from_len])
-	offset += from_len
+	e.From = string(buffer[offset : offset+int(from_len)])
+	offset += int(from_len)
 
 	// getting Target length
 	target_len := binary.BigEndian.Uint32(buffer[offset : offset+4])
 	offset += 4
 	// getting Target filed
-	e.From = string(buffer[offset : offset+target_len])
-	offset += target_len
+	e.From = string(buffer[offset : offset+int(target_len)])
+	offset += int(target_len)
 
 	// copying remaining data as Event Data
 	e.Data = make([]byte, len(buffer)-offset)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"sync"
+	"time"
 )
 
 const (
@@ -47,6 +48,14 @@ func NewApi(token string, endpoint ...string) *Api {
 
 	api.network = newNetwork(api)
 	return api
+}
+
+// Starting API client
+func (api *Api) Start() {
+	api.network.connect(api.endpoints[api.default_endpoint])
+	for {
+		time.Sleep(time.Millisecond * 1000)
+	}
 }
 
 // Setting default endpoint for easy API usage
@@ -138,6 +147,6 @@ func (api *Api) EmitJson(name string, data interface{}, endpoint string) error {
 		return err
 	}
 
-	api.emit(name, buffer, endpoint)
+	api.Emit(name, buffer, endpoint)
 	return nil
 }

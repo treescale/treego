@@ -184,7 +184,7 @@ func read_endian(conn *net.TCPConn, endian_data []byte) (uint32, bool) {
 	// that connection is not sending full 4 bytes at once
 	endian_index := 0
 	for {
-		n, err := conn.Read(endian_data[endian_index])
+		n, err := conn.Read(endian_data[endian_index:])
 		if err != nil {
 			// if we have EOF, then we need to return from write functionality
 			// connection would be closed from reader
@@ -232,7 +232,7 @@ func read_message(conn *net.TCPConn, endian_data []byte) ([]byte, bool) {
 			}
 		}
 
-		if n+offset < length {
+		if n+offset < int(length) {
 			offset += n
 		}
 

@@ -5,6 +5,7 @@ import (
 	"github.com/satori/go.uuid"
 	"reflect"
 	"sync"
+	"time"
 )
 
 const (
@@ -48,12 +49,13 @@ func NewApi(endpoint, token string, endpoint_type EndpointType) *TreeApi {
 	}
 
 	ta := &TreeApi{
-		endpoint:      endpoint,
-		endpoint_type: endpoint_type,
-		tcp_network:   nil,
-		callbacks:     make(map[string][]EventCallback),
-		Token:         token,
-		ApiVersion:    DEFAULT_API_VERSION,
+		endpoint:         endpoint,
+		endpoint_type:    endpoint_type,
+		tcp_network:      nil,
+		callbacks:        make(map[string][]EventCallback),
+		Token:            token,
+		ApiVersion:       DEFAULT_API_VERSION,
+		callbacks_locker: &sync.Mutex{},
 	}
 
 	ta.tcp_network = newTcpNet(ta)
@@ -127,6 +129,11 @@ func (api *TreeApi) Start(channels int) {
 		channels = 1
 	}
 
+	api.tcp_network.connect(channels)
+
+	for {
+		time.Sleep(time.Second * 3)
+	}
 }
 
 // Generating first handshake for sending it

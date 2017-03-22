@@ -21,7 +21,7 @@ type EventCallback func(*Event) bool
 
 var DEFAULT_API_PATH = []byte{0, 0, 0, 0, 0, 0, 0, 0}
 
-func NewEvent(name string, data []byte) *Event {
+func newEvent(name string, data []byte) *Event {
 	return &Event{
 		path:   DEFAULT_API_PATH,
 		Name:   name,

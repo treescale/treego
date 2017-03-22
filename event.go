@@ -19,9 +19,11 @@ type Event struct {
 // Event callback function type
 type EventCallback func(*Event) bool
 
+var DEFAULT_API_PATH = []byte{0, 0, 0, 0, 0, 0, 0, 0}
+
 func NewEvent(name string, data []byte) *Event {
 	return &Event{
-		path:   []byte{0, 0, 0, 0, 0, 0, 0, 0},
+		path:   DEFAULT_API_PATH,
 		Name:   name,
 		From:   "",
 		Target: "",

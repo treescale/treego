@@ -192,6 +192,9 @@ func (tcp_net *TcpNetwork) write(data []byte) {
 func (tcp_net *TcpNetwork) handle_connection(conn *net.TCPConn, index int) {
 	endian_buffer := make([]byte, 4)
 	endian_index := 0
+
+	// writing first handshake
+	tcp_net.write(tcp_net.network.node.firstHandshake())
 	for {
 		// reading API data length
 		n, err := conn.Read(endian_buffer[endian_index:])

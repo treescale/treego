@@ -1,6 +1,7 @@
 package treego
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"reflect"
 	"sync"
@@ -149,4 +150,29 @@ func (api *Api) EmitJson(name string, data interface{}, endpoint string) error {
 
 	api.Emit(name, buffer, endpoint)
 	return nil
+}
+
+// Generating first handshake for sending it
+func (api *Api) firstHandshake() []byte {
+	token_data := []byte(api.Token)
+	token_len := len(token_data)
+	buffer_len := 4 + 4 + token_len + 8
+	buffer := make([]byte, buffer_len)
+	offset := 0
+
+	// writing API Version
+	binary.BigEndian.PutUint32(buffer[offset:offset+4], api.ApiVersion)
+	offset += 4
+
+	// Writing length of token and value
+	binary.BigEndian.PutUint32(buffer[offset:offset+4], uint32(token_len+8))
+	offset += 4
+	// Writing token data
+	copy(buffer[offset:offset+token_len], token_data)
+	offset += token_len
+
+	// writing value
+	copy(buffer[offset:], DEFAULT_API_PATH)
+
+	return buffer
 }

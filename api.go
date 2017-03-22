@@ -1,6 +1,7 @@
 package treego
 
 import (
+	"encoding/binary"
 	"github.com/satori/go.uuid"
 	"reflect"
 	"sync"
@@ -8,7 +9,13 @@ import (
 
 const (
 	// List of Endpoint types available to connect to
-	ENDPOINT_TCP EndpointType = 1
+	ENDPOINT_TCP        EndpointType = 1
+	DEFAULT_API_VERSION uint32       = 1
+
+	MAX_API_VERSION uint32 = 1000
+
+	// Maximum network message length is 30MB
+	MAX_READ_DATA_LEN uint32 = 30000000
 )
 
 type EndpointType int
@@ -29,6 +36,8 @@ type TreeApi struct {
 	// This would be auto-generated if not set
 	// from uuid4
 	Token string
+
+	ApiVersion uint32
 }
 
 // Making new TreeApi object, if token is empty string
@@ -44,6 +53,7 @@ func NewApi(endpoint, token string, endpoint_type EndpointType) *TreeApi {
 		tcp_network:   nil,
 		callbacks:     make(map[string][]EventCallback),
 		Token:         token,
+		ApiVersion:    DEFAULT_API_VERSION,
 	}
 
 	ta.tcp_network = newTcpNet(ta)
@@ -106,4 +116,45 @@ func (api *TreeApi) Trigger(event *Event) {
 // triggering local event just based on Data
 func (api *TreeApi) trigger_local(name string, data []byte) {
 	api.Trigger(newEvent(name, data))
+}
+
+// Starting Loop and connecting to given endpoint
+// channels - home many concurrent connections we will keep with endpoint
+// More connections will get more Memory but will increase network performance
+// if channels is <= 0 , then it will be set to 1
+func (api *TreeApi) Start(channels int) {
+	if channels <= 0 {
+		channels = 1
+	}
+
+}
+
+// Generating first handshake for sending it
+func (api *TreeApi) firstHandshake() []byte {
+	token_data := []byte(api.Token)
+	token_len := len(token_data)
+	buffer_len := 4 + 4 + token_len + 8
+	buffer := make([]byte, buffer_len)
+	offset := 0
+
+	// writing API Version
+	binary.BigEndian.PutUint32(buffer[offset:offset+4], api.ApiVersion)
+	offset += 4
+
+	// Writing length of token and value
+	binary.BigEndian.PutUint32(buffer[offset:offset+4], uint32(token_len+8))
+	offset += 4
+	// Writing token data
+	copy(buffer[offset:offset+token_len], token_data)
+	offset += token_len
+
+	// writing value
+	copy(buffer[offset:], DEFAULT_API_PATH)
+
+	return buffer
+}
+
+// handling data from networking, this would be parsed as an event
+func (api *TreeApi) handle_data(data []byte) {
+
 }

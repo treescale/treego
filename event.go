@@ -2,6 +2,15 @@ package treego
 
 import "encoding/binary"
 
+// Keeping default event names
+const (
+	EVENT_ON_CONNECTION         = "connection"
+	EVENT_ON_DISCONNECT         = "disconnect"
+	EVENT_ON_CHANNEL_CONNECTION = "channel_connection"
+	EVENT_ON_CHANNEL_DISCONNECT = "channel_disconnect"
+	EVENT_ON_ERROR              = "error"
+)
+
 type Event struct {
 	// this path is used only internally
 	// and would be 0 for all cases

@@ -156,5 +156,7 @@ func (api *TreeApi) firstHandshake() []byte {
 
 // handling data from networking, this would be parsed as an event
 func (api *TreeApi) handle_data(data []byte) {
-
+	ev := new(Event)
+	ev.FromBytes(data)
+	api.Trigger(ev)
 }

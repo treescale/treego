@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"time"
 	"treego"
 )
 
@@ -27,5 +30,21 @@ func main() {
 		return true
 	})
 
-	api.Start(2)
+	go func() {
+		time.Sleep(time.Second * 2)
+		data, err := ioutil.ReadFile(os.Args[1])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		event := &treego.Event{Name: "Test Event", From: api.Token, Data: data}
+
+		for {
+			//fmt.Println("Writing it")
+			api.Emit(event)
+			//time.Sleep(time.Millisecond * 100)
+		}
+	}()
+
+	api.Start(5)
 }

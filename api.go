@@ -21,6 +21,10 @@ const (
 
 type EndpointType int
 
+var (
+	TMP_DATA = []byte{}
+)
+
 type TreeApi struct {
 	// endpoint to connect to
 	endpoint      string
@@ -173,4 +177,9 @@ func (api *TreeApi) handle_data(data []byte) {
 	ev := new(Event)
 	ev.FromBytes(data)
 	api.Trigger(ev)
+}
+
+// Sending event to endpoint
+func (api *TreeApi) Emit(event *Event) error {
+	return api.tcp_network.write(event.ToBytes(), nil)
 }

@@ -96,11 +96,7 @@ func (network *tcp_net) write(buffer []byte, conn *net.TCPConn) error {
 			if err == io.EOF {
 				return errors.New("Connection channel closed!")
 			}
-
-			// if we got temporary network error, just sleeping for a few milliseconds
-			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
-				time.Sleep(time.Millisecond * 10)
-			}
+			break
 		}
 
 		if n+write_offset < data_len {

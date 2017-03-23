@@ -10,13 +10,17 @@ import (
 	"time"
 )
 
+var (
+	tcp_conn_index = 0
+)
+
 type tcp_net struct {
 	// reference to TreeApi
 	api *TreeApi
 
 	// TCP connections, which are something like a channel
 	// for entire API connection for TreeScale API
-	connections []*net.TCPConn
+	connections map[int]*net.TCPConn
 
 	// locking connections for concurrent access
 	connection_locker *sync.Mutex
@@ -27,7 +31,7 @@ type tcp_net struct {
 func newTcpNet(api *TreeApi) *tcp_net {
 	return &tcp_net{
 		api:               api,
-		connections:       make([]*net.TCPConn, 0),
+		connections:       make(map[int]*net.TCPConn),
 		connection_locker: &sync.Mutex{},
 		connection_index:  0,
 	}
@@ -53,10 +57,10 @@ func (network *tcp_net) connect(channels int) {
 				[]byte(fmt.Sprintf("Unable to connect to given endpoint %s from TCP -> %s", network.api.endpoint, err.Error())))
 		} else {
 			network.connection_locker.Lock()
-			index := len(network.connections)
-			network.connections = append(network.connections, conn)
-			go network.handle_connection(index, conn, handshake_data)
+			network.connections[tcp_conn_index] = conn
+			go network.handle_connection(tcp_conn_index, conn, handshake_data)
 			go network.api.trigger_local(EVENT_ON_CHANNEL_CONNECTION, []byte{})
+			tcp_conn_index++
 			network.connection_locker.Unlock()
 		}
 	}
@@ -148,9 +152,17 @@ func (network *tcp_net) handle_connection(index int, conn *net.TCPConn, handshak
 	}
 
 	tv_len := len(token_value_buf)
-	token := token_value_buf[:tv_len-8]
+	token := string(token_value_buf[:tv_len-8])
 	value := binary.BigEndian.Uint64(token_value_buf[tv_len-8:])
-	go network.api.trigger_local(EVENT_ON_CONNECTION, []byte(fmt.Sprintf("%s|%d", token, value)))
+	// if we got new API value and token, then probably this is a new connection
+	// so setting up new endpoint values and triggering event
+	network.api.endpoint_info_locker.Lock()
+	if network.api.endpoint_value != value || network.api.endpoint_token != token {
+		network.api.endpoint_value = value
+		network.api.endpoint_token = token
+		go network.api.trigger_local(EVENT_ON_CONNECTION, []byte(fmt.Sprintf("%s|%d", token, value)))
+	}
+	network.api.endpoint_info_locker.Unlock()
 
 	var data []byte
 
@@ -168,12 +180,17 @@ func (network *tcp_net) handle_connection(index int, conn *net.TCPConn, handshak
 func (network *tcp_net) close_connection(index int) {
 	network.connection_locker.Lock()
 
-	if index >= 0 && index < len(network.connections) {
-		network.connections[index].Close()
-		network.connections = append(network.connections[index:], network.connections[index+1:]...)
-
+	if conn, ok := network.connections[index]; ok {
+		conn.Close()
+		delete(network.connections, index)
 		go network.api.trigger_local(EVENT_ON_CHANNEL_DISCONNECT,
 			[]byte(fmt.Sprintf("TCP Channel closed. Left %d channels", len(network.connections))))
+
+		// if we don't have channels anymore
+		// triggering event about connection close
+		if len(network.connections) == 0 {
+			go network.api.trigger_local(EVENT_ON_DISCONNECT, []byte(fmt.Sprintf("%s|%d", network.api.endpoint_token, network.api.endpoint_value)))
+		}
 	}
 
 	network.connection_locker.Unlock()

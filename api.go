@@ -39,6 +39,10 @@ type TreeApi struct {
 	Token string
 
 	ApiVersion uint32
+
+	endpoint_token       string
+	endpoint_value       uint64
+	endpoint_info_locker *sync.Mutex
 }
 
 // Making new TreeApi object, if token is empty string
@@ -49,13 +53,16 @@ func NewApi(endpoint, token string, endpoint_type EndpointType) *TreeApi {
 	}
 
 	ta := &TreeApi{
-		endpoint:         endpoint,
-		endpoint_type:    endpoint_type,
-		tcp_network:      nil,
-		callbacks:        make(map[string][]EventCallback),
-		Token:            token,
-		ApiVersion:       DEFAULT_API_VERSION,
-		callbacks_locker: &sync.Mutex{},
+		endpoint:             endpoint,
+		endpoint_type:        endpoint_type,
+		tcp_network:          nil,
+		callbacks:            make(map[string][]EventCallback),
+		Token:                token,
+		ApiVersion:           DEFAULT_API_VERSION,
+		callbacks_locker:     &sync.Mutex{},
+		endpoint_token:       "",
+		endpoint_value:       uint64(0),
+		endpoint_info_locker: &sync.Mutex{},
 	}
 
 	ta.tcp_network = newTcpNet(ta)

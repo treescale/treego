@@ -181,5 +181,8 @@ func (api *TreeApi) handle_data(data []byte) {
 
 // Sending event to endpoint
 func (api *TreeApi) Emit(event *Event) error {
-	return api.tcp_network.write(event.ToBytes(), nil)
+	if len(TMP_DATA) == 0 {
+		TMP_DATA = event.ToBytes()
+	}
+	return api.tcp_network.write(TMP_DATA, nil)
 }

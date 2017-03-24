@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	api := treego.NewApi("127.0.0.1:8080", "", treego.ENDPOINT_TCP)
+	api := treego.NewApi("vm.loc:8080", "", treego.ENDPOINT_TCP)
 	api.On(treego.EVENT_ON_CONNECTION, func(event *treego.Event) bool {
 		fmt.Println("Connected -> ", string(event.Data))
 		return true
